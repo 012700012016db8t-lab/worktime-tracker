@@ -55,12 +55,6 @@
             letter-spacing: -0.5px;
         }
 
-        .subtitle {
-            font-size: 14px;
-            color: #999;
-            font-weight: 500;
-        }
-
         .digital-clock {
             font-family: 'Courier New', monospace;
             font-size: 48px;
@@ -99,6 +93,24 @@
         .elapsed-time {
             font-size: 18px;
             color: #0a84ff;
+        }
+
+        .start-time-display {
+            background: #e3f2fd;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            border: 1px solid #90caf9;
+            text-align: center;
+        }
+
+        .start-time-display .info-label {
+            color: #0a84ff;
+        }
+
+        .start-time-display .info-value {
+            color: #0a84ff;
+            font-family: 'Courier New', monospace;
         }
 
         .button-group {
@@ -394,6 +406,7 @@
             color: #666;
             margin-bottom: 24px;
             line-height: 1.5;
+            white-space: pre-wrap;
         }
 
         .confirmation-buttons {
@@ -420,6 +433,45 @@
             background: #0066cc;
         }
 
+        /* Punch Complete Modal */
+        .punch-complete-modal {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 30px;
+            max-width: 320px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .punch-complete-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+        }
+
+        .punch-complete-time {
+            font-size: 36px;
+            font-weight: 600;
+            color: #0a84ff;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 12px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .punch-complete-label {
+            font-size: 13px;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 24px;
+        }
+
+        .punch-complete-button {
+            width: 100%;
+        }
+
         @media (max-width: 480px) {
             .container {
                 padding: 30px 20px;
@@ -443,7 +495,6 @@
     <div class="container">
         <div class="header">
             <h1 class="title">Work Time Tracker</h1>
-            <p class="subtitle">労働時間を可視化</p>
         </div>
 
         <div class="digital-clock" id="clock">00:00:00</div>
@@ -457,6 +508,8 @@
             <button class="btn btn-primary" id="startBtn">打刻(始業)</button>
             <button class="btn btn-primary" id="endBtn">打刻(終業)</button>
         </div>
+
+        <div id="startTimeContainer"></div>
 
         <div class="info-section">
             <div class="info-label">経過時間</div>
@@ -533,6 +586,16 @@
         </div>
     </div>
 
+    <!-- Punch Complete Modal -->
+    <div class="modal" id="punchCompleteModal">
+        <div class="punch-complete-modal">
+            <h3 class="punch-complete-title">✓ 打刻が完了しました</h3>
+            <div class="punch-complete-time" id="punchCompleteTime">00:00:00</div>
+            <div class="punch-complete-label" id="punchCompleteLabel">始業時刻</div>
+            <button class="btn btn-primary punch-complete-button" id="punchCompleteCloseBtn">閉じる</button>
+        </div>
+    </div>
+
     <script>
         // Data Management
         const DATA_KEY = 'workTimeTrackerData';
@@ -559,6 +622,7 @@
             updateElapsedTime();
             updateAvailableTime();
             renderLogs();
+            updateStartTimeDisplay();
             setInterval(updateClock, 1000);
             setInterval(updateElapsedTime, 1000);
         }
@@ -637,6 +701,23 @@
             document.getElementById('elapsedTime').textContent = formatDuration(elapsed);
         }
 
+        // Start Time Display
+        function updateStartTimeDisplay() {
+            const container = document.getElementById('startTimeContainer');
+            if (data.currentStartTime) {
+                const startDate = new Date(data.currentStartTime);
+                const timeStr = formatTime(startDate);
+                container.innerHTML = `
+                    <div class="start-time-display">
+                        <div class="info-label">始業時刻</div>
+                        <div class="info-value">${timeStr}</div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = '';
+            }
+        }
+
         // Available Time Calculation
         function updateAvailableTime() {
             if (settings.hourlyRate <= 0 || settings.monthlyLimit <= 0) {
@@ -679,12 +760,15 @@
             document.getElementById('settingsForm').addEventListener('submit', handleSettingsSave);
             document.getElementById('manualInputForm').addEventListener('submit', handleManualInput);
             document.getElementById('resetLogsBtn').addEventListener('click', handleResetLogs);
+            document.getElementById('punchCompleteCloseBtn').addEventListener('click', closePunchCompleteModal);
         }
 
         function handleStart() {
             data.currentStartTime = new Date().toISOString();
             saveData();
             updateElapsedTime();
+            updateStartTimeDisplay();
+            showPunchComplete('始業時刻');
         }
 
         function handleEnd() {
@@ -703,6 +787,8 @@
             updateElapsedTime();
             updateAvailableTime();
             renderLogs();
+            updateStartTimeDisplay();
+            showPunchComplete('終業時刻');
         }
 
         function addLog(startTime, endTime, durationSeconds) {
@@ -715,6 +801,19 @@
             };
             data.logs.unshift(log);
             saveData();
+        }
+
+        // Punch Complete Modal
+        function showPunchComplete(label) {
+            const now = new Date();
+            const timeStr = formatTime(now);
+            document.getElementById('punchCompleteTime').textContent = timeStr;
+            document.getElementById('punchCompleteLabel').textContent = label;
+            document.getElementById('punchCompleteModal').classList.add('active');
+        }
+
+        function closePunchCompleteModal() {
+            document.getElementById('punchCompleteModal').classList.remove('active');
         }
 
         // Settings Modal
