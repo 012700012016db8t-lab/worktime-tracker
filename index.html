@@ -538,7 +538,7 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">月の限度額（円）</label>
-                    <input type="number" id="monthlyLimit" class="form-input" placeholder="200000" min="0" step="1000">
+                    <input type="text" id="monthlyLimit" class="form-input" placeholder="200000" inputmode="numeric" pattern="[0-9]*">
                 </div>
                 <div class="modal-buttons">
                     <button type="button" class="btn btn-secondary" id="settingsCancelBtn">キャンセル</button>
@@ -727,7 +727,9 @@
 
             // Maximum working hours = monthly limit / hourly rate
             const maxHours = settings.monthlyLimit / settings.hourlyRate;
-            const maxSeconds = maxHours * 3600;
+            const maxHoursFloor = Math.floor(maxHours);
+            const maxMinutes = Math.round((maxHours - maxHoursFloor) * 60);
+            const maxSeconds = maxHoursFloor * 3600 + maxMinutes * 60;
 
             // Total worked seconds this month
             const now = new Date();
@@ -830,10 +832,23 @@
             document.getElementById('monthlyLimit').value = settings.monthlyLimit;
         }
 
+        // Prevent non-numeric input for monthlyLimit
+        document.addEventListener('DOMContentLoaded', function() {
+            const monthlyLimitInput = document.getElementById('monthlyLimit');
+            if (monthlyLimitInput) {
+                monthlyLimitInput.addEventListener('input', function(e) {
+                    this.value = this.value.replace(/[^0-9]/g, '');
+                });
+            }
+        });
+
         function handleSettingsSave(e) {
             e.preventDefault();
             const hourlyRate = parseFloat(document.getElementById('hourlyRate').value) || 0;
-            const monthlyLimit = parseFloat(document.getElementById('monthlyLimit').value) || 0;
+            let monthlyLimitStr = document.getElementById('monthlyLimit').value;
+            // Remove non-numeric characters
+            monthlyLimitStr = monthlyLimitStr.replace(/[^0-9]/g, '');
+            const monthlyLimit = parseFloat(monthlyLimitStr) || 0;
 
             if (hourlyRate < 0 || monthlyLimit < 0) {
                 alert('正の値を入力してください');
